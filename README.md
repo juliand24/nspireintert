@@ -54,6 +54,32 @@ Serial requests and responses are one JSON object per line:
 {"id":"1","answer":"2x"}
 ```
 
+## Calculator-side companion
+
+`calculator/nspire_ai.lua` is a standard TI-Nspire Lua document script. Transfer
+it to the calculator as a `.tns` Lua document using TI-Nspire Student Software
+or TI-Nspire Computer Link, then open the document.
+
+The stock Lua runtime cannot make arbitrary TCP or USB connections. The
+companion therefore uses a visible JSON handoff:
+
+1. Type a question and press **Enter**, then press **1**. Read the displayed
+   JSON request and enter the same request on the computer.
+2. Send it to the bridge, for example:
+
+   ```bash
+   curl -s http://127.0.0.1:8765/ask \
+     -H 'Content-Type: application/json' \
+     -d '{"question":"What is the derivative of x^2?"}'
+   ```
+3. Return to the calculator, press **2**, enter the returned JSON, and press
+   **Enter**. The answer is then displayed.
+
+This is an honest stock-firmware workflow. Fully automatic live communication
+requires an Ndless program and a supported USB/serial transport; the bridge's
+`--serial` mode is ready for that transport, but a regular TI cable does not
+provide it by itself.
+
 The local API accepts:
 
 ```bash
