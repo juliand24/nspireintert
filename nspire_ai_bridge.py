@@ -38,7 +38,7 @@ class Settings:
 
 PROVIDERS = {
     "OpenAI": ("https://api.openai.com/v1", "gpt-4o-mini"),
-    "Google Gemini": ("https://generativelanguage.googleapis.com/v1beta/openai", "gemini-2.5-flash"),
+    "Google Gemini": ("https://generativelanguage.googleapis.com/v1beta/openai", "gemini-3.8-flash"),
     "OpenRouter": ("https://openrouter.ai/api/v1", "openai/gpt-4o-mini"),
     "Custom OpenAI-compatible": ("", ""),
 }
@@ -247,7 +247,7 @@ class BridgeHandler(BaseHTTPRequestHandler):
     const settingsStatus = document.getElementById("settings-status");
     const providers = {
       "OpenAI": ["https://api.openai.com/v1", "gpt-4o-mini"],
-      "Google Gemini": ["https://generativelanguage.googleapis.com/v1beta/openai", "gemini-2.5-flash"],
+      "Google Gemini": ["https://generativelanguage.googleapis.com/v1beta/openai", "gemini-3.8-flash"],
       "OpenRouter": ["https://openrouter.ai/api/v1", "openai/gpt-4o-mini"],
       "Custom OpenAI-compatible": ["", ""]
     };
