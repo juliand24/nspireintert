@@ -30,6 +30,10 @@ export OPENAI_API_KEY="your-key"
 python3 nspire_ai_bridge.py
 ```
 
+If you already installed the project before the certificate fix, run
+`pip install -r requirements.txt` again. The bridge uses `certifi` for verified
+TLS certificates and does not disable certificate checking.
+
 The desktop window starts with the HTTP API and browser UI on
 `http://127.0.0.1:8765`. Open that address in your browser to ask questions.
 The default AI endpoint is OpenAI-compatible; it can be changed with:

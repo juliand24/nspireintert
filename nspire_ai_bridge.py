@@ -11,6 +11,7 @@ import argparse
 import json
 import os
 import queue
+import ssl
 import threading
 import tkinter as tk
 from dataclasses import dataclass
@@ -18,6 +19,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from tkinter import messagebox, scrolledtext, ttk
 from typing import Any
 from urllib import error, request
+
+import certifi
 
 
 @dataclass
@@ -76,7 +79,10 @@ class AIClient:
             method="POST",
         )
         try:
-            with request.urlopen(http_request, timeout=self.settings.timeout) as response:
+            tls_context = ssl.create_default_context(cafile=certifi.where())
+            with request.urlopen(
+                http_request, timeout=self.settings.timeout, context=tls_context
+            ) as response:
                 result: dict[str, Any] = json.loads(response.read().decode("utf-8"))
         except error.HTTPError as exc:
             detail = exc.read().decode("utf-8", errors="replace")
