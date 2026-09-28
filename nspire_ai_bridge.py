@@ -135,6 +135,7 @@ class BridgeHandler(BaseHTTPRequestHandler):
 <body>
   <h1>TI-Nspire AI Bridge</h1>
   <p>Ask a question here, or use the <code>/ask</code> API from your calculator.</p>
+  <p id="connection">Checking computer bridge...</p>
   <textarea id="question" placeholder="Type your question..."></textarea>
   <br>
   <button id="ask">Ask AI</button>
@@ -145,6 +146,14 @@ class BridgeHandler(BaseHTTPRequestHandler):
     const question = document.getElementById("question");
     const answer = document.getElementById("answer");
     const status = document.getElementById("status");
+    fetch("/health").then((response) => {
+      if (!response.ok) throw new Error("bridge is not healthy");
+      document.getElementById("connection").textContent =
+        "Computer bridge connected. Calculator transport: manual handoff.";
+    }).catch(() => {
+      document.getElementById("connection").textContent =
+        "Computer bridge is not responding.";
+    });
     document.getElementById("ask").addEventListener("click", async () => {
       const text = question.value.trim();
       if (!text) { status.textContent = "Enter a question first."; return; }

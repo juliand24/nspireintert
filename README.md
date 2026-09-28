@@ -81,6 +81,11 @@ requires an Ndless program and a supported USB/serial transport; the bridge's
 `--serial` mode is ready for that transport, but a regular TI cable does not
 provide it by itself.
 
+The standard TI-Nspire Student Software connection is for file transfer; it does
+not make the Mac's web server available to a Lua document. A fully automatic
+connection requires an Ndless program exposing a supported serial transport,
+usually with a USB-to-serial adapter.
+
 The local API accepts:
 
 ```bash

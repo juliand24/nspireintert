@@ -79,6 +79,12 @@ end
 function on.charIn(char)
     if mode == "question" then
         request_text = request_text .. char
+    elseif mode == "menu" then
+        if char == "1" then
+            copy_request()
+        elseif char == "2" then
+            paste_response()
+        end
     elseif mode == "response" then
         answer_text = answer_text .. char
     end
@@ -104,18 +110,6 @@ function on.enterKey()
     else
         mode = "question"
         notice = "Enter a question, then choose Copy request."
-    end
-    platform.window:invalidate()
-end
-
-function on.keyDown(key)
-    if mode ~= "menu" then
-        return
-    end
-    if key == "1" then
-        copy_request()
-    elseif key == "2" then
-        paste_response()
     end
     platform.window:invalidate()
 end
