@@ -33,6 +33,14 @@ class Settings:
     )
 
 
+PROVIDERS = {
+    "OpenAI": ("https://api.openai.com/v1", "gpt-4o-mini"),
+    "Google Gemini": ("https://generativelanguage.googleapis.com/v1beta/openai", "gemini-2.5-flash"),
+    "OpenRouter": ("https://openrouter.ai/api/v1", "openai/gpt-4o-mini"),
+    "Custom OpenAI-compatible": ("", ""),
+}
+
+
 class AIClient:
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
@@ -126,6 +134,7 @@ class BridgeHandler(BaseHTTPRequestHandler):
             "temperature": settings.temperature,
             "system_prompt": settings.system_prompt,
             "api_key_configured": bool(settings.api_key),
+            "api_key_hint": ("configured" if settings.api_key else "not configured"),
         }
 
     def _update_settings(self) -> None:
@@ -139,6 +148,10 @@ class BridgeHandler(BaseHTTPRequestHandler):
                 if not base_url.startswith(("http://", "https://")):
                     raise ValueError("base URL must start with http:// or https://")
                 settings.base_url = base_url
+            if "api_key" in body:
+                api_key = str(body["api_key"]).strip()
+                if api_key:
+                    settings.api_key = api_key
             if "model" in body:
                 settings.model = str(body["model"]).strip()
                 if not settings.model:
@@ -186,6 +199,7 @@ class BridgeHandler(BaseHTTPRequestHandler):
     label { display: block; margin-top: .7rem; }
     input, settings-textarea { box-sizing: border-box; width: 100%; padding: .5rem; }
     .settings-prompt { min-height: 80px; }
+    .warning { color: #8a4b00; }
     #status { color: #555; }
   </style>
 </head>
@@ -201,6 +215,17 @@ class BridgeHandler(BaseHTTPRequestHandler):
   <pre id="answer">No answer yet.</pre>
   <details>
     <summary><strong>AI settings</strong></summary>
+    <p class="warning">The key is kept only in this running Mac process and is cleared when the bridge stops. Never share it.</p>
+    <label>Provider
+      <select id="provider">
+        <option>OpenAI</option>
+        <option>Google Gemini</option>
+        <option>OpenRouter</option>
+        <option>Custom OpenAI-compatible</option>
+      </select>
+    </label>
+    <label>API key <input id="api-key" type="password" autocomplete="off"
+      placeholder="Enter a key; leave blank to keep the current key"></label>
     <label>Model <input id="model" placeholder="gpt-4o-mini"></label>
     <label>API base URL <input id="base-url" placeholder="https://api.openai.com/v1"></label>
     <label>Timeout (seconds) <input id="timeout" type="number" min="1" max="600"></label>
@@ -214,12 +239,25 @@ class BridgeHandler(BaseHTTPRequestHandler):
     const answer = document.getElementById("answer");
     const status = document.getElementById("status");
     const settingsStatus = document.getElementById("settings-status");
+    const providers = {
+      "OpenAI": ["https://api.openai.com/v1", "gpt-4o-mini"],
+      "Google Gemini": ["https://generativelanguage.googleapis.com/v1beta/openai", "gemini-2.5-flash"],
+      "OpenRouter": ["https://openrouter.ai/api/v1", "openai/gpt-4o-mini"],
+      "Custom OpenAI-compatible": ["", ""]
+    };
+    document.getElementById("provider").addEventListener("change", () => {
+      const values = providers[document.getElementById("provider").value];
+      if (values[0]) document.getElementById("base-url").value = values[0];
+      if (values[1]) document.getElementById("model").value = values[1];
+    });
     function showSettings(settings) {
       document.getElementById("model").value = settings.model;
       document.getElementById("base-url").value = settings.base_url;
       document.getElementById("timeout").value = settings.timeout;
       document.getElementById("temperature").value = settings.temperature;
       document.getElementById("system-prompt").value = settings.system_prompt;
+      document.getElementById("api-key").placeholder =
+        settings.api_key_configured ? "Key configured; enter a new key to replace it" : "Enter an API key";
     }
     fetch("/settings").then((response) => response.json()).then(showSettings);
     document.getElementById("save-settings").addEventListener("click", async () => {
@@ -231,6 +269,7 @@ class BridgeHandler(BaseHTTPRequestHandler):
           body: JSON.stringify({
             model: document.getElementById("model").value,
             base_url: document.getElementById("base-url").value,
+            api_key: document.getElementById("api-key").value,
             timeout: Number(document.getElementById("timeout").value),
             temperature: Number(document.getElementById("temperature").value),
             system_prompt: document.getElementById("system-prompt").value
@@ -239,6 +278,7 @@ class BridgeHandler(BaseHTTPRequestHandler):
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || "Could not save settings");
         showSettings(data);
+        document.getElementById("api-key").value = "";
         settingsStatus.textContent = " Saved.";
       } catch (error) {
         settingsStatus.textContent = " Error: " + error.message;

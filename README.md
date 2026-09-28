@@ -41,6 +41,13 @@ python3 nspire_ai_bridge.py \
   --port 8765
 ```
 
+The browser's **AI settings** panel includes presets for OpenAI, Google Gemini
+(OpenAI-compatible endpoint), and OpenRouter, plus a custom OpenAI-compatible
+provider. It also accepts an API key through a password field. The key is held
+only in memory by the running local process, is not returned by `/settings`, and
+is cleared when the bridge stops. Leave the key field blank when changing other
+settings to keep the current key.
+
 For a serial transport, first identify the port (`/dev/cu.usbserial-*` on
 macOS, `COM3` on Windows, or `/dev/ttyUSB0` on Linux), then run:
 
