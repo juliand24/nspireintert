@@ -20,12 +20,17 @@ from typing import Any
 from urllib import error, request
 
 
-@dataclass(frozen=True)
+@dataclass
 class Settings:
     api_key: str
     base_url: str
     model: str
     timeout: float = 60.0
+    temperature: float = 0.2
+    system_prompt: str = (
+        "You are a concise math and science assistant for a TI-Nspire calculator "
+        "user. Show useful intermediate steps, but keep the final answer easy to type."
+    )
 
 
 class AIClient:
@@ -42,14 +47,11 @@ class AIClient:
         payload = json.dumps(
             {
                 "model": self.settings.model,
+                "temperature": self.settings.temperature,
                 "messages": [
                     {
                         "role": "system",
-                        "content": (
-                            "You are a concise math and science assistant for a "
-                            "TI-Nspire calculator user. Show useful intermediate "
-                            "steps, but keep the final answer easy to type."
-                        ),
+                        "content": self.settings.system_prompt,
                     },
                     {"role": "user", "content": question},
                 ],
@@ -87,23 +89,74 @@ class BridgeHandler(BaseHTTPRequestHandler):
         if self.path == "/":
             self._send_html()
             return
-        if self.path != "/health":
-            self._send_json(404, {"error": "not found"})
+        if self.path == "/health":
+            self._send_json(200, {"ok": True})
             return
-        self._send_json(200, {"ok": True})
+        if self.path == "/settings":
+            self._send_json(200, self._public_settings())
+            return
+        self._send_json(404, {"error": "not found"})
 
     def do_POST(self) -> None:  # noqa: N802
+        if self.path == "/settings":
+            self._update_settings()
+            return
         if self.path != "/ask":
             self._send_json(404, {"error": "not found"})
             return
         try:
-            length = int(self.headers.get("Content-Length", "0"))
-            body = json.loads(self.rfile.read(length))
+            body = self._read_json()
             if not isinstance(body, dict):
                 raise ValueError("request body must be a JSON object")
             answer = self.client.ask(str(body.get("question", "")))
             self._send_json(200, {"answer": answer})
         except (ValueError, json.JSONDecodeError, RuntimeError) as exc:
+            self._send_json(400, {"error": str(exc)})
+
+    def _read_json(self) -> Any:
+        length = int(self.headers.get("Content-Length", "0"))
+        return json.loads(self.rfile.read(length))
+
+    def _public_settings(self) -> dict[str, Any]:
+        settings = self.client.settings
+        return {
+            "base_url": settings.base_url,
+            "model": settings.model,
+            "timeout": settings.timeout,
+            "temperature": settings.temperature,
+            "system_prompt": settings.system_prompt,
+            "api_key_configured": bool(settings.api_key),
+        }
+
+    def _update_settings(self) -> None:
+        try:
+            body = self._read_json()
+            if not isinstance(body, dict):
+                raise ValueError("settings must be a JSON object")
+            settings = self.client.settings
+            if "base_url" in body:
+                base_url = str(body["base_url"]).strip()
+                if not base_url.startswith(("http://", "https://")):
+                    raise ValueError("base URL must start with http:// or https://")
+                settings.base_url = base_url
+            if "model" in body:
+                settings.model = str(body["model"]).strip()
+                if not settings.model:
+                    raise ValueError("model must not be empty")
+            if "timeout" in body:
+                settings.timeout = float(body["timeout"])
+                if not 1 <= settings.timeout <= 600:
+                    raise ValueError("timeout must be between 1 and 600 seconds")
+            if "temperature" in body:
+                settings.temperature = float(body["temperature"])
+                if not 0 <= settings.temperature <= 2:
+                    raise ValueError("temperature must be between 0 and 2")
+            if "system_prompt" in body:
+                settings.system_prompt = str(body["system_prompt"]).strip()
+                if not settings.system_prompt:
+                    raise ValueError("system prompt must not be empty")
+            self._send_json(200, self._public_settings())
+        except (ValueError, TypeError, json.JSONDecodeError) as exc:
             self._send_json(400, {"error": str(exc)})
 
     def _send_json(self, status: int, body: dict[str, Any]) -> None:
@@ -129,6 +182,10 @@ class BridgeHandler(BaseHTTPRequestHandler):
     button { margin-top: .75rem; padding: .6rem 1rem; cursor: pointer; }
     pre { white-space: pre-wrap; background: #eef3f9; padding: 1rem;
           min-height: 100px; color: #222; }
+    details { margin-top: 1.5rem; padding: 1rem; background: #f5f6f8; }
+    label { display: block; margin-top: .7rem; }
+    input, settings-textarea { box-sizing: border-box; width: 100%; padding: .5rem; }
+    .settings-prompt { min-height: 80px; }
     #status { color: #555; }
   </style>
 </head>
@@ -142,10 +199,51 @@ class BridgeHandler(BaseHTTPRequestHandler):
   <p id="status"></p>
   <h2>Answer</h2>
   <pre id="answer">No answer yet.</pre>
+  <details>
+    <summary><strong>AI settings</strong></summary>
+    <label>Model <input id="model" placeholder="gpt-4o-mini"></label>
+    <label>API base URL <input id="base-url" placeholder="https://api.openai.com/v1"></label>
+    <label>Timeout (seconds) <input id="timeout" type="number" min="1" max="600"></label>
+    <label>Temperature (0 to 2) <input id="temperature" type="number" min="0" max="2" step="0.1"></label>
+    <label>System instruction <textarea id="system-prompt" class="settings-prompt"></textarea></label>
+    <button id="save-settings">Save settings</button>
+    <span id="settings-status"></span>
+  </details>
   <script>
     const question = document.getElementById("question");
     const answer = document.getElementById("answer");
     const status = document.getElementById("status");
+    const settingsStatus = document.getElementById("settings-status");
+    function showSettings(settings) {
+      document.getElementById("model").value = settings.model;
+      document.getElementById("base-url").value = settings.base_url;
+      document.getElementById("timeout").value = settings.timeout;
+      document.getElementById("temperature").value = settings.temperature;
+      document.getElementById("system-prompt").value = settings.system_prompt;
+    }
+    fetch("/settings").then((response) => response.json()).then(showSettings);
+    document.getElementById("save-settings").addEventListener("click", async () => {
+      settingsStatus.textContent = "Saving...";
+      try {
+        const response = await fetch("/settings", {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({
+            model: document.getElementById("model").value,
+            base_url: document.getElementById("base-url").value,
+            timeout: Number(document.getElementById("timeout").value),
+            temperature: Number(document.getElementById("temperature").value),
+            system_prompt: document.getElementById("system-prompt").value
+          })
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Could not save settings");
+        showSettings(data);
+        settingsStatus.textContent = " Saved.";
+      } catch (error) {
+        settingsStatus.textContent = " Error: " + error.message;
+      }
+    });
     fetch("/health").then((response) => {
       if (!response.ok) throw new Error("bridge is not healthy");
       document.getElementById("connection").textContent =
