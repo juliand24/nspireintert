@@ -30,8 +30,9 @@ export OPENAI_API_KEY="your-key"
 python3 nspire_ai_bridge.py
 ```
 
-The desktop window starts with the HTTP API on `http://127.0.0.1:8765`. The
-default endpoint is OpenAI-compatible; it can be changed with:
+The desktop window starts with the HTTP API and browser UI on
+`http://127.0.0.1:8765`. Open that address in your browser to ask questions.
+The default AI endpoint is OpenAI-compatible; it can be changed with:
 
 ```bash
 python3 nspire_ai_bridge.py \

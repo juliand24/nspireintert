@@ -84,6 +84,9 @@ class BridgeHandler(BaseHTTPRequestHandler):
     client: AIClient
 
     def do_GET(self) -> None:  # noqa: N802
+        if self.path == "/":
+            self._send_html()
+            return
         if self.path != "/health":
             self._send_json(404, {"error": "not found"})
             return
@@ -107,6 +110,67 @@ class BridgeHandler(BaseHTTPRequestHandler):
         encoded = json.dumps(body).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(encoded)))
+        self.end_headers()
+        self.wfile.write(encoded)
+
+    def _send_html(self) -> None:
+        page = """<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TI-Nspire AI Bridge</title>
+  <style>
+    body { max-width: 760px; margin: 2rem auto; padding: 0 1rem;
+           font: 16px system-ui, sans-serif; color: #192d4b; }
+    textarea { box-sizing: border-box; width: 100%; min-height: 130px;
+               padding: .75rem; font: inherit; }
+    button { margin-top: .75rem; padding: .6rem 1rem; cursor: pointer; }
+    pre { white-space: pre-wrap; background: #eef3f9; padding: 1rem;
+          min-height: 100px; color: #222; }
+    #status { color: #555; }
+  </style>
+</head>
+<body>
+  <h1>TI-Nspire AI Bridge</h1>
+  <p>Ask a question here, or use the <code>/ask</code> API from your calculator.</p>
+  <textarea id="question" placeholder="Type your question..."></textarea>
+  <br>
+  <button id="ask">Ask AI</button>
+  <p id="status"></p>
+  <h2>Answer</h2>
+  <pre id="answer">No answer yet.</pre>
+  <script>
+    const question = document.getElementById("question");
+    const answer = document.getElementById("answer");
+    const status = document.getElementById("status");
+    document.getElementById("ask").addEventListener("click", async () => {
+      const text = question.value.trim();
+      if (!text) { status.textContent = "Enter a question first."; return; }
+      status.textContent = "Thinking...";
+      answer.textContent = "";
+      try {
+        const response = await fetch("/ask", {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({question: text})
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Request failed");
+        answer.textContent = data.answer;
+        status.textContent = "Done.";
+      } catch (error) {
+        answer.textContent = "Error: " + error.message;
+        status.textContent = "";
+      }
+    });
+  </script>
+</body>
+</html>"""
+        encoded = page.encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
         self.send_header("Content-Length", str(len(encoded)))
         self.end_headers()
         self.wfile.write(encoded)
