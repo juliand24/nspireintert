@@ -1,8 +1,8 @@
 -- TI-Nspire CX II/CX II CAS companion.
 --
--- This is a standard Lua document script. The stock TI-Nspire Lua runtime
--- cannot open arbitrary TCP/USB connections, so it provides a calculator UI
--- and displays the JSON handoff for a computer-side bridge.
+-- Paste this source into a new TI-Nspire "Lua Script" document. The stock
+-- TI-Nspire Lua runtime cannot open arbitrary TCP/USB connections, so it
+-- provides a calculator UI and displays the handoff for the computer bridge.
 --
 -- A future Ndless transport can replace copy_request/parse_response without
 -- changing the UI.
@@ -10,7 +10,7 @@
 local request_text = ""
 local answer_text = "Ready."
 local mode = "question"
-local notice = "Enter a question, then choose Copy request."
+local notice = "Type a question, then press Enter."
 
 local function trim(value)
     return (value:gsub("^%s+", ""):gsub("%s+$", ""))
@@ -29,7 +29,7 @@ local function copy_request()
     end
     local payload = '{"id":"nspire-1","question":"' .. json_escape(request_text) .. '"}'
     answer_text = payload
-    notice = "Request shown. Send it to /ask, then paste the response."
+    notice = "Request ready. Ask it in the Mac browser."
 end
 
 local function parse_response(raw)
@@ -69,7 +69,7 @@ local function draw(gc)
     gc:drawString("Answer:", 16, 124)
     gc:drawString(answer_text:sub(1, 66), 16, 143)
     gc:setColorRGB(25, 45, 75)
-    gc:drawString("[Enter] edit  [1] copy request  [2] paste response", 10, 196)
+    gc:drawString("[Enter] menu  [1] request  [2] response", 10, 196)
 end
 
 function on.paint(gc)
@@ -109,7 +109,7 @@ function on.enterKey()
         notice = "Press 1 to copy the request or 2 to paste an answer."
     else
         mode = "question"
-        notice = "Enter a question, then choose Copy request."
+        notice = "Type a question, then press Enter."
     end
     platform.window:invalidate()
 end

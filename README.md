@@ -70,15 +70,21 @@ Serial requests and responses are one JSON object per line:
 
 ## Calculator-side companion
 
-`calculator/nspire_ai.lua` is a standard TI-Nspire Lua document script. Transfer
-it to the calculator as a `.tns` Lua document using TI-Nspire Student Software
-or TI-Nspire Computer Link, then open the document.
+`calculator/nspire_ai.lua` is the source for a TI-Nspire Lua document. Do not
+rename the `.lua` file to `.tns`; the calculator needs the script embedded in a
+Lua document:
+
+1. In TI-Nspire Student Software, create a new **Lua Script** document.
+2. Open the script editor, replace its contents with
+   `calculator/nspire_ai.lua`, and save the document as a `.tns` file.
+3. Transfer that `.tns` document to the calculator and open it.
 
 The stock Lua runtime cannot make arbitrary TCP or USB connections. The
 companion therefore uses a visible JSON handoff:
 
-1. Type a question and press **Enter**, then press **1**. Read the displayed
-   JSON request and enter the same request on the computer.
+1. Type a question and press **Enter**, then press **1**. The calculator shows
+   the JSON request. Since stock Lua cannot copy it to the Mac, type the
+   question into the Mac bridge browser instead.
 2. Send it to the bridge, for example:
 
    ```bash
@@ -86,8 +92,10 @@ companion therefore uses a visible JSON handoff:
      -H 'Content-Type: application/json' \
      -d '{"question":"What is the derivative of x^2?"}'
    ```
-3. Return to the calculator, press **2**, enter the returned JSON, and press
-   **Enter**. The answer is then displayed.
+3. Return to the calculator, press **Enter**, then press **2**, type the
+   returned JSON, and press **Enter**. The answer is then displayed. For long
+   answers this manual workflow is inconvenient; use the Mac browser directly
+   unless you have Ndless and a real transport.
 
 This is an honest stock-firmware workflow. Fully automatic live communication
 requires an Ndless program and a supported USB/serial transport; the bridge's
