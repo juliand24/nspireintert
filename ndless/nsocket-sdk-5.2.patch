@@ -2,6 +2,14 @@ diff --git a/ns_client/nsocket.c b/ns_client/nsocket.c
 index 4108a1b..e3ef42d 100644
 --- a/ns_client/nsocket.c
 +++ b/ns_client/nsocket.c
+@@ -15,7 +15,7 @@ unsigned int timeout = 50;
+ 
+-nn_ch_t* ns_getch()
++nn_ch_t ns_getch()
+ {
+ 	return ch;
+ }
+ 
 @@ -44,7 +44,7 @@ int ns_connect(char* host, short port)
  	
  	int status;
