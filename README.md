@@ -85,6 +85,11 @@ helper forwards the stream to this Python port. Build the client with the
 template, not a prebuilt `.tns` application: Ndless builds are tied to the
 calculator OS/SDK version.
 
+Ndless r2022 officially supports CX II/CX II CAS OS `5.2.0.771`. See
+`ndless/README.md` for the calculator build commands. The upstream nsocket host
+helper is Windows-specific, so a macOS NavNet/N-Link forwarding layer is still
+required before the calculator client can connect.
+
 The host helper and calculator client must both be running; the regular TI USB
 cable is transported through NavNet, not exposed as `/dev/cu.*`. If you do not
 have the nsocket host helper installed, use the browser API until that
