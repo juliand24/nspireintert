@@ -16,6 +16,7 @@ import threading
 import tkinter as tk
 from dataclasses import dataclass
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from socketserver import StreamRequestHandler, ThreadingTCPServer
 from tkinter import messagebox, scrolledtext, ttk
 from typing import Any
 from urllib import error, request
@@ -332,9 +333,34 @@ class BridgeHandler(BaseHTTPRequestHandler):
         return
 
 
+class NspireTCPHandler(StreamRequestHandler):
+    client: AIClient
+
+    def handle(self) -> None:
+        for raw in self.rfile:
+            try:
+                message = json.loads(raw.decode("utf-8"))
+                if not isinstance(message, dict):
+                    raise ValueError("request must be a JSON object")
+                answer = self.client.ask(str(message.get("question", "")))
+                response = {"id": message.get("id"), "answer": answer}
+            except (UnicodeDecodeError, json.JSONDecodeError, ValueError, RuntimeError) as exc:
+                response = {"id": None, "error": str(exc)}
+            self.wfile.write((json.dumps(response) + "\n").encode("utf-8"))
+            self.wfile.flush()
+
+
 def start_http_server(client: AIClient, host: str, port: int) -> ThreadingHTTPServer:
     handler = type("ConfiguredBridgeHandler", (BridgeHandler,), {"client": client})
     server = ThreadingHTTPServer((host, port), handler)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    return server
+
+
+def start_nspire_server(client: AIClient, host: str, port: int) -> ThreadingTCPServer:
+    handler = type("ConfiguredNspireTCPHandler", (NspireTCPHandler,), {"client": client})
+    server = ThreadingTCPServer((host, port), handler)
+    server.daemon_threads = True
     threading.Thread(target=server.serve_forever, daemon=True).start()
     return server
 
@@ -430,13 +456,26 @@ def main() -> None:
     parser.add_argument("--base-url", default="https://api.openai.com/v1")
     parser.add_argument("--model", default="gpt-4o-mini")
     parser.add_argument("--serial", help="optional serial port exposed by your setup")
+    parser.add_argument(
+        "--nspire-port",
+        type=int,
+        default=8766,
+        help="TCP port for an Ndless/NavNet nsocket tunnel (0 disables it)",
+    )
     args = parser.parse_args()
 
     client = AIClient(Settings(os.environ.get("OPENAI_API_KEY", ""), args.base_url, args.model))
     server = start_http_server(client, args.host, args.port)
+    nspire_server = (
+        start_nspire_server(client, args.host, args.nspire_port)
+        if args.nspire_port
+        else None
+    )
     root = tk.Tk()
     App(root, client, server, args.serial)
     root.mainloop()
+    if nspire_server:
+        nspire_server.shutdown()
 
 
 if __name__ == "__main__":

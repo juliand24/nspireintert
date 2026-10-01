@@ -68,6 +68,28 @@ Serial requests and responses are one JSON object per line:
 {"id":"1","answer":"2x"}
 ```
 
+## Ndless/NavNet USB tunnel
+
+For a CX II with Ndless, the project also exposes a newline-delimited JSON TCP
+service on port `8766` by default:
+
+```bash
+python3 nspire_ai_bridge.py --nspire-port 8766
+```
+
+`ndless/nsocket_ai.c` is a small client for the `nsocket` NavNet project. It
+uses the calculator's USB link through NavNet, while the nsocket computer-side
+helper forwards the stream to this Python port. Build the client with the
+`nsocket` library and Ndless SDK, then change `BRIDGE_HOST` and
+`BRIDGE_PORT` in the source to match the host helper. This is a source
+template, not a prebuilt `.tns` application: Ndless builds are tied to the
+calculator OS/SDK version.
+
+The host helper and calculator client must both be running; the regular TI USB
+cable is transported through NavNet, not exposed as `/dev/cu.*`. If you do not
+have the nsocket host helper installed, use the browser API until that
+Ndless-specific component is built.
+
 ## Calculator-side companion
 
 `calculator/nspire_ai.lua` is the source for a TI-Nspire Lua document. Do not
