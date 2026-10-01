@@ -12,10 +12,17 @@ from <https://github.com/compujuckel/nsocket>, then build its calculator
 library:
 
 ```bash
+cd /Users/julian/nsocket
+git apply /path/to/nspireintert/ndless/nsocket-sdk-5.2.patch
 cd ns_client
 make
 make install
 ```
+
+The patch is required with the current Ndless SDK: its `os.h` already defines
+the NavNet handle types, and its `TI_NN_Read` declaration takes the received
+size by value. If `git apply` says the patch is already applied, do not apply it
+again; just run `make clean && make` in `ns_client`.
 
 Compile this client with the same toolchain and link `libnsocket.a`:
 

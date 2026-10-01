@@ -1,0 +1,38 @@
+diff --git a/ns_client/nsocket.h b/ns_client/nsocket.h
+index feacff8..0000000 100644
+--- a/ns_client/nsocket.h
++++ b/ns_client/nsocket.h
+@@ -1,12 +1,8 @@
+ #ifndef NSOCKET_H
+ #define NSOCKET_H
+ 
+ #include <os.h>
+ 
+-typedef void* nn_ch_t;
+-typedef void* nn_nh_t;
+-typedef void* nn_oh_t;
+-
+ int ns_init();
+ int ns_connect(char* host, short port);
+ int ns_send(void* buf, unsigned int len);
+diff --git a/ns_client/nsocket.c b/ns_client/nsocket.c
+index 4108a1b..0000000 100644
+--- a/ns_client/nsocket.c
++++ b/ns_client/nsocket.c
+@@ -44,7 +40,7 @@ int ns_connect(char* host, short port)
+ 	
+ 	int status;
+ 	uint32_t recv_size;
+-	NNCALL(TI_NN_Read, (ch, 5000, &status, sizeof(int), &recv_size));
++	NNCALL(TI_NN_Read, (ch, 5000, &status, sizeof(int), recv_size));
+ 	
+ 	return status;
+ }
+@@ -58,7 +54,7 @@ int ns_recv(void* buf, unsigned int len)
+ {
+ 	unsigned int recv_size;
+-	NNCALL(TI_NN_Read, (ch, timeout, buf, len, (uint32_t*)&recv_size));
++	NNCALL(TI_NN_Read, (ch, timeout, buf, len, recv_size));
+ 	
+ 	return recv_size;
+ }
